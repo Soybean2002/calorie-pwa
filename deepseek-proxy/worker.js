@@ -24,7 +24,7 @@ function corsHeaders(env) {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Sync-Token",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Proxy-Token, X-Sync-Token",
     "Content-Type": "application/json; charset=utf-8"
   };
 }
@@ -36,11 +36,17 @@ function json(data, status, env) {
   });
 }
 
-function isAuthorized(request, env) {
-  if (!env.SYNC_TOKEN) return true;
+function isAuthorized(request, token) {
+  if (!token) return true;
   const url = new URL(request.url);
-  const token = url.searchParams.get("token") || request.headers.get("X-Sync-Token");
-  return token === env.SYNC_TOKEN;
+  const authHeader = request.headers.get("Authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const requestToken =
+    url.searchParams.get("token") ||
+    request.headers.get("X-Proxy-Token") ||
+    request.headers.get("X-Sync-Token") ||
+    bearerToken;
+  return requestToken === token;
 }
 
 export default {
@@ -54,7 +60,7 @@ export default {
       if (request.method !== "POST") {
         return json({ error: "Method not allowed" }, 405, env);
       }
-      if (!isAuthorized(request, env)) {
+      if (!isAuthorized(request, env.SYNC_TOKEN)) {
         return json({ error: "Unauthorized" }, 401, env);
       }
       if (!env.CALORIE_LOGS) {
@@ -81,7 +87,7 @@ export default {
       if (request.method !== "GET") {
         return json({ error: "Method not allowed" }, 405, env);
       }
-      if (!isAuthorized(request, env)) {
+      if (!isAuthorized(request, env.SYNC_TOKEN)) {
         return json({ error: "Unauthorized" }, 401, env);
       }
       if (!env.CALORIE_LOGS) {
@@ -100,6 +106,9 @@ export default {
 
     if (request.method !== "POST" || url.pathname !== "/estimate") {
       return json({ error: "Not found" }, 404, env);
+    }
+    if (!isAuthorized(request, env.PROXY_TOKEN)) {
+      return json({ error: "Unauthorized" }, 401, env);
     }
 
     if (!env.DEEPSEEK_API_KEY) {

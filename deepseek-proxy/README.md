@@ -1,47 +1,72 @@
 # DeepSeek Proxy
 
-GitHub Pages 是纯前端，不能安全保存 DeepSeek API Key。这个 Cloudflare Worker 模板负责把 Key 放在服务端，并给 PWA 提供一个 `/estimate` 接口。
+Cloudflare Worker 模板，用于给大卡记提供两个可选能力：
 
-同一个 Worker 也可以作为记录同步接口：PWA 每次点“添加”后，可以把食物记录 `POST` 到 `/log`，Worker 会写入 Cloudflare KV。
+- `/estimate`：服务端调用 DeepSeek，估算食物热量和营养素
+- `/log` / `/logs`：把新增记录同步保存到 Cloudflare KV
 
-## Cloudflare Worker 设置
+GitHub Pages 是纯前端，不能安全保存 DeepSeek API Key。请把 Key 放在 Worker 的 Secret 中。
 
-1. 在 Cloudflare 创建 Worker。
-2. 把 `worker.js` 内容粘贴进去并部署。
-3. 在 Worker 的变量/密钥里添加：
-   - `DEEPSEEK_API_KEY`: 你的 DeepSeek API Key
-   - `ALLOWED_ORIGIN`: `https://soybean2002.github.io`
-   - `DEEPSEEK_MODEL`: 可选，默认 `deepseek-v4-flash`
-4. 复制 Worker 地址，例如：
+## 部署
+
+1. 在 Cloudflare 创建 Worker
+2. 把 [`worker.js`](worker.js) 粘贴进去并部署
+3. 在 `Settings -> Variables and Secrets` 添加：
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `DEEPSEEK_API_KEY` | Secret | Yes, for `/estimate` | DeepSeek API Key |
+| `ALLOWED_ORIGIN` | Text | Recommended | 例如 `https://soybean2002.github.io` |
+| `DEEPSEEK_MODEL` | Text | No | 默认 `deepseek-v4-flash` |
+| `PROXY_TOKEN` | Secret | No | 保护 `/estimate`，防止公开滥用 |
+| `SYNC_TOKEN` | Secret | No | 保护 `/log` 和 `/logs` |
+
+## DeepSeek 估算
+
+PWA 中填写：
 
 ```text
-https://calorie-deepseek-proxy.yourname.workers.dev/estimate
+https://your-worker.your-account.workers.dev/estimate
 ```
 
-5. 回到 PWA：`趋势 -> 数据 -> DeepSeek 代理地址`，粘贴这个地址并保存。
+如果设置了 `PROXY_TOKEN`，填写：
 
-DeepSeek 官方接口使用 OpenAI 兼容的 `POST /chat/completions` 格式，当前模板默认调用 `https://api.deepseek.com/chat/completions`。
+```text
+https://your-worker.your-account.workers.dev/estimate?token=your-proxy-token
+```
+
+测试：
+
+```bash
+curl -X POST "https://your-worker.your-account.workers.dev/estimate?token=your-proxy-token" \
+  -H "Content-Type: application/json" \
+  --data '{"description":"一碗牛肉面"}'
+```
 
 ## 记录同步
 
-如果你想把每次添加的记录也保存到 Cloudflare：
+如果你想把每次添加的记录保存到 Cloudflare：
 
-1. 在 Cloudflare 创建一个 KV namespace，例如 `CALORIE_LOGS`。
+1. 创建 Cloudflare KV namespace，例如 `CALORIE_LOGS`
 2. 到 Worker 的 `Settings -> Bindings` 添加 KV binding：
    - Variable name: `CALORIE_LOGS`
    - KV namespace: 选择刚创建的 namespace
-3. 在 Worker 的 `Variables and Secrets` 添加一个 Secret：
-   - `SYNC_TOKEN`: 自己生成一串随机密码，例如 `daka-ji-2026-xxxx`
-4. 回到 PWA：`趋势 -> 数据 -> 记录同步地址`，填写：
+3. 在 `Variables and Secrets` 添加：
+   - `SYNC_TOKEN`: 自己生成一串随机密码
+4. PWA 中填写：
 
 ```text
-https://calorie-deepseek-proxy.yourname.workers.dev/log?token=你的SYNC_TOKEN
+https://your-worker.your-account.workers.dev/log?token=your-sync-token
 ```
-
-之后每次点“添加”，记录都会同步到 KV。
 
 查看最近记录：
 
-```text
-https://calorie-deepseek-proxy.yourname.workers.dev/logs?token=你的SYNC_TOKEN
+```bash
+curl "https://your-worker.your-account.workers.dev/logs?token=your-sync-token"
 ```
+
+## 注意
+
+- CORS 不是鉴权。公开 Worker 地址后，别人仍可能通过命令行直接访问
+- 建议为 `/estimate` 设置 `PROXY_TOKEN`
+- 不要把真实 token 写进公开 README、Issue 或截图
