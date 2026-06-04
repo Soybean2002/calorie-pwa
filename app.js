@@ -8,7 +8,10 @@ const defaultState = {
     weight: 70,
     activity: 1.55,
     goal: 0,
-    manualTarget: ""
+    manualTarget: "",
+    manualProtein: "",
+    manualCarb: "",
+    manualFat: ""
   },
   entriesByDate: {}
 };
@@ -42,6 +45,7 @@ const elements = {
   clearDay: $("#clearDay"),
   profileForm: $("#profileForm"),
   bmrText: $("#bmrText"),
+  macroHint: $("#macroHint"),
   sex: $("#sex"),
   age: $("#age"),
   height: $("#height"),
@@ -49,6 +53,9 @@ const elements = {
   activity: $("#activity"),
   goal: $("#goal"),
   manualTarget: $("#manualTarget"),
+  manualProtein: $("#manualProtein"),
+  manualCarb: $("#manualCarb"),
+  manualFat: $("#manualFat"),
   historyChart: $("#historyChart"),
   averageText: $("#averageText"),
   resetAll: $("#resetAll"),
@@ -107,7 +114,10 @@ function getProfileNumbers() {
     weight: Number(profile.weight) || 0,
     activity: Number(profile.activity) || 1.2,
     goal: Number(profile.goal) || 0,
-    manualTarget: Number(profile.manualTarget) || 0
+    manualTarget: Number(profile.manualTarget) || 0,
+    manualProtein: Number(profile.manualProtein) || 0,
+    manualCarb: Number(profile.manualCarb) || 0,
+    manualFat: Number(profile.manualFat) || 0
   };
 }
 
@@ -117,9 +127,12 @@ function calculateTargets() {
   const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + sexOffset;
   const tdee = bmr * profile.activity;
   const target = profile.manualTarget > 0 ? profile.manualTarget : tdee + profile.goal;
-  const protein = profile.weight * 1.6;
-  const fat = profile.weight * 0.8;
-  const carb = Math.max((target - protein * 4 - fat * 9) / 4, 0);
+  const autoProtein = profile.weight * 1.6;
+  const autoFat = profile.weight * 0.8;
+  const autoCarb = Math.max((target - autoProtein * 4 - autoFat * 9) / 4, 0);
+  const protein = profile.manualProtein > 0 ? profile.manualProtein : autoProtein;
+  const carb = profile.manualCarb > 0 ? profile.manualCarb : autoCarb;
+  const fat = profile.manualFat > 0 ? profile.manualFat : autoFat;
 
   return {
     bmr: round(bmr),
@@ -129,7 +142,8 @@ function calculateTargets() {
       protein: roundOne(protein),
       carb: roundOne(carb),
       fat: roundOne(fat)
-    }
+    },
+    hasManualMacros: profile.manualProtein > 0 || profile.manualCarb > 0 || profile.manualFat > 0
   };
 }
 
@@ -173,6 +187,7 @@ function renderSummary() {
   setMeter(elements.carbMeter, elements.carbText, totals.carb, targets.macros.carb);
   setMeter(elements.fatMeter, elements.fatText, totals.fat, targets.macros.fat);
   elements.bmrText.textContent = `BMR ${targets.bmr} · TDEE ${targets.tdee}`;
+  elements.macroHint.textContent = targets.hasManualMacros ? "使用手动目标" : "按体重自动估算";
 }
 
 function renderEntries() {
@@ -201,6 +216,9 @@ function renderProfileForm() {
   elements.activity.value = String(profile.activity);
   elements.goal.value = String(profile.goal);
   elements.manualTarget.value = profile.manualTarget;
+  elements.manualProtein.value = profile.manualProtein;
+  elements.manualCarb.value = profile.manualCarb;
+  elements.manualFat.value = profile.manualFat;
 }
 
 function renderHistory() {
@@ -369,7 +387,10 @@ elements.profileForm.addEventListener("submit", (event) => {
     weight: Number(elements.weight.value) || defaultState.profile.weight,
     activity: Number(elements.activity.value) || defaultState.profile.activity,
     goal: Number(elements.goal.value) || 0,
-    manualTarget: elements.manualTarget.value
+    manualTarget: elements.manualTarget.value,
+    manualProtein: elements.manualProtein.value,
+    manualCarb: elements.manualCarb.value,
+    manualFat: elements.manualFat.value
   };
   saveState();
   render();
