@@ -4,9 +4,9 @@ const ESTIMATE_TIMEOUT_MS = 90000;
 const defaultState = {
   profile: {
     sex: "male",
-    age: 28,
-    height: 175,
-    weight: 70,
+    age: 24,
+    height: 183,
+    weight: 75,
     activity: 1.55,
     goal: 0,
     manualTarget: "",
