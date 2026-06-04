@@ -29,6 +29,16 @@ http://127.0.0.1:4173/
 
 右上角下载按钮会导出 JSON 备份；“趋势 -> 数据”里可以导入备份。
 
+## 记录同步
+
+默认情况下，所有记录只保存在当前浏览器本地。你也可以在：
+
+```text
+趋势 -> 数据 -> 记录同步地址
+```
+
+填入自己的同步接口。之后每次点“添加”，应用会把新记录同步发送到该地址。Cloudflare Worker 模板已经内置 `/log` 和 `/logs` 接口，可配合 KV 保存记录。
+
 ## DeepSeek 估算
 
 不要把 DeepSeek API Key 写进前端代码或 GitHub Pages。推荐部署 `deepseek-proxy/worker.js` 到 Cloudflare Worker，把 API Key 放在 Worker 的密钥变量里。

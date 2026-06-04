@@ -23,8 +23,8 @@ JSON 结构：
 function corsHeaders(env) {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Sync-Token",
     "Content-Type": "application/json; charset=utf-8"
   };
 }
@@ -36,6 +36,13 @@ function json(data, status, env) {
   });
 }
 
+function isAuthorized(request, env) {
+  if (!env.SYNC_TOKEN) return true;
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token") || request.headers.get("X-Sync-Token");
+  return token === env.SYNC_TOKEN;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -43,6 +50,54 @@ export default {
     }
 
     const url = new URL(request.url);
+    if (url.pathname === "/log") {
+      if (request.method !== "POST") {
+        return json({ error: "Method not allowed" }, 405, env);
+      }
+      if (!isAuthorized(request, env)) {
+        return json({ error: "Unauthorized" }, 401, env);
+      }
+      if (!env.CALORIE_LOGS) {
+        return json({ error: "Missing CALORIE_LOGS KV binding" }, 500, env);
+      }
+
+      let payload;
+      try {
+        payload = await request.json();
+      } catch {
+        return json({ error: "Invalid JSON body" }, 400, env);
+      }
+
+      const receivedAt = new Date().toISOString();
+      const dateValue = String(payload.date || "");
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? dateValue : "unknown";
+      const id = crypto.randomUUID();
+      const key = `entries/${date}/${receivedAt}-${id}`;
+      await env.CALORIE_LOGS.put(key, JSON.stringify({ receivedAt, payload }));
+      return json({ ok: true, key, receivedAt }, 200, env);
+    }
+
+    if (url.pathname === "/logs") {
+      if (request.method !== "GET") {
+        return json({ error: "Method not allowed" }, 405, env);
+      }
+      if (!isAuthorized(request, env)) {
+        return json({ error: "Unauthorized" }, 401, env);
+      }
+      if (!env.CALORIE_LOGS) {
+        return json({ error: "Missing CALORIE_LOGS KV binding" }, 500, env);
+      }
+
+      const listed = await env.CALORIE_LOGS.list({ prefix: "entries/", limit: 100 });
+      const entries = await Promise.all(
+        listed.keys.map(async (item) => {
+          const value = await env.CALORIE_LOGS.get(item.name, "json");
+          return { key: item.name, ...value };
+        })
+      );
+      return json({ entries: entries.reverse() }, 200, env);
+    }
+
     if (request.method !== "POST" || url.pathname !== "/estimate") {
       return json({ error: "Not found" }, 404, env);
     }

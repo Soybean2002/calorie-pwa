@@ -15,7 +15,10 @@ const defaultState = {
     manualFat: ""
   },
   settings: {
-    aiProxyUrl: ""
+    aiProxyUrl: "",
+    syncUrl: "",
+    lastSyncAt: "",
+    lastSyncStatus: ""
   },
   entriesByDate: {}
 };
@@ -71,7 +74,10 @@ const elements = {
   resetAll: $("#resetAll"),
   importFile: $("#importFile"),
   aiSettingsForm: $("#aiSettingsForm"),
-  aiProxyUrl: $("#aiProxyUrl")
+  aiProxyUrl: $("#aiProxyUrl"),
+  syncSettingsForm: $("#syncSettingsForm"),
+  syncUrl: $("#syncUrl"),
+  syncStatus: $("#syncStatus")
 };
 
 function loadState() {
@@ -101,19 +107,34 @@ function saveState() {
 function applyProxyFromUrl() {
   const url = new URL(window.location.href);
   const proxyUrl = url.searchParams.get("proxy") || url.searchParams.get("aiProxy");
-  if (!proxyUrl) return;
+  const syncUrl = url.searchParams.get("sync") || url.searchParams.get("syncUrl");
 
-  try {
+  if (proxyUrl) try {
     const parsedProxy = new URL(proxyUrl);
     if (parsedProxy.protocol !== "https:" || !parsedProxy.pathname.endsWith("/estimate")) {
       throw new Error("Invalid proxy URL");
     }
     state.settings.aiProxyUrl = parsedProxy.href;
+  } catch {
+    state.settings.lastSyncStatus = "代理地址无效";
+  }
+
+  if (syncUrl) try {
+    const parsedSync = new URL(syncUrl);
+    if (parsedSync.protocol !== "https:" || !parsedSync.pathname.endsWith("/log")) {
+      throw new Error("Invalid sync URL");
+    }
+    state.settings.syncUrl = parsedSync.href;
+  } catch {
+    state.settings.lastSyncStatus = "同步地址无效";
+  }
+
+  if (proxyUrl || syncUrl) {
     saveState();
     url.searchParams.delete("proxy");
     url.searchParams.delete("aiProxy");
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  } catch {
+    url.searchParams.delete("sync");
+    url.searchParams.delete("syncUrl");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }
 }
@@ -262,6 +283,15 @@ function renderProfileForm() {
 
 function renderSettings() {
   elements.aiProxyUrl.value = state.settings.aiProxyUrl || "";
+  elements.syncUrl.value = state.settings.syncUrl || "";
+  if (state.settings.lastSyncStatus === "success" && state.settings.lastSyncAt) {
+    elements.syncStatus.textContent = `最近同步：${new Date(state.settings.lastSyncAt).toLocaleString()}`;
+    elements.syncStatus.classList.remove("danger");
+  } else {
+    elements.syncStatus.textContent = state.settings.lastSyncStatus || "";
+    const isError = Boolean(state.settings.lastSyncStatus) && state.settings.lastSyncStatus !== "同步地址已保存";
+    elements.syncStatus.classList.toggle("danger", isError);
+  }
 }
 
 function renderHistory() {
@@ -316,10 +346,41 @@ function addEntry(formData) {
 
   state.entriesByDate[currentDate] = [...getEntries(), entry];
   saveState();
+  syncEntry(currentDate, entry);
   elements.foodForm.reset();
   clearEstimate();
   $("#mealType").value = entry.meal;
   render();
+}
+
+async function syncEntry(dateKey, entry) {
+  const syncUrl = state.settings.syncUrl?.trim();
+  if (!syncUrl) return;
+
+  try {
+    const response = await fetch(syncUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app: "daka-ji",
+        event: "entry.created",
+        sentAt: new Date().toISOString(),
+        date: dateKey,
+        entry,
+        totals: getTotals(dateKey)
+      }),
+      keepalive: true
+    });
+
+    if (!response.ok) throw new Error(`同步失败 ${response.status}`);
+    state.settings.lastSyncAt = new Date().toISOString();
+    state.settings.lastSyncStatus = "success";
+  } catch (error) {
+    state.settings.lastSyncStatus = error.message || "同步失败";
+  } finally {
+    saveState();
+    renderSettings();
+  }
 }
 
 function createId() {
@@ -591,6 +652,14 @@ elements.profileForm.addEventListener("submit", (event) => {
 elements.aiSettingsForm.addEventListener("submit", (event) => {
   event.preventDefault();
   state.settings.aiProxyUrl = elements.aiProxyUrl.value.trim();
+  saveState();
+  renderSettings();
+});
+
+elements.syncSettingsForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  state.settings.syncUrl = elements.syncUrl.value.trim();
+  state.settings.lastSyncStatus = state.settings.syncUrl ? "同步地址已保存" : "";
   saveState();
   renderSettings();
 });

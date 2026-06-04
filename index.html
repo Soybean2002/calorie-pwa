@@ -240,6 +240,14 @@
             </label>
             <button class="ghost-button" type="submit">保存代理</button>
           </form>
+          <form class="settings-form" id="syncSettingsForm">
+            <label>
+              <span>记录同步地址</span>
+              <input id="syncUrl" type="url" placeholder="https://你的-worker.workers.dev/log?token=..." autocomplete="off" />
+            </label>
+            <button class="ghost-button" type="submit">保存同步</button>
+          </form>
+          <p class="status-line" id="syncStatus"></p>
           <label class="import-box">
             <span>导入备份 JSON</span>
             <input id="importFile" type="file" accept="application/json" />
