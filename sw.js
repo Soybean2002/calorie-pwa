@@ -1,10 +1,11 @@
-const CACHE_NAME = "calorie-pwa-v10";
+const CACHE_NAME = "calorie-pwa-v11";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
+  "./icons/icon-180.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
