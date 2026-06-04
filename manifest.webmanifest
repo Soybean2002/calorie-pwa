@@ -1,6 +1,6 @@
 {
-  "name": "大卡账本",
-  "short_name": "大卡",
+  "name": "大卡记",
+  "short_name": "大卡记",
   "description": "个人使用的大卡摄入计算器",
   "start_url": "./index.html",
   "scope": "./",
