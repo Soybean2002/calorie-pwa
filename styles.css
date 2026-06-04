@@ -275,6 +275,10 @@ meter::-webkit-meter-optimum-value {
   gap: 12px;
 }
 
+.settings-form {
+  grid-template-columns: 1fr;
+}
+
 label {
   display: grid;
   gap: 6px;
