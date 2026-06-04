@@ -311,6 +311,7 @@ function addEntry(formData) {
   state.entriesByDate[currentDate] = [...getEntries(), entry];
   saveState();
   elements.foodForm.reset();
+  clearEstimate();
   $("#mealType").value = entry.meal;
   render();
 }
