@@ -95,6 +95,26 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function applyProxyFromUrl() {
+  const url = new URL(window.location.href);
+  const proxyUrl = url.searchParams.get("proxy") || url.searchParams.get("aiProxy");
+  if (!proxyUrl) return;
+
+  try {
+    const parsedProxy = new URL(proxyUrl);
+    if (parsedProxy.protocol !== "https:" || !parsedProxy.pathname.endsWith("/estimate")) {
+      throw new Error("Invalid proxy URL");
+    }
+    state.settings.aiProxyUrl = parsedProxy.href;
+    saveState();
+    url.searchParams.delete("proxy");
+    url.searchParams.delete("aiProxy");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  } catch {
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
 function todayKey() {
   const now = new Date();
   const timezoneOffset = now.getTimezoneOffset() * 60000;
@@ -570,4 +590,5 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+applyProxyFromUrl();
 render();

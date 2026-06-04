@@ -46,3 +46,9 @@ https://calorie-deepseek-proxy.yourname.workers.dev/estimate
 ```
 
 然后回到“记录”页，在“智能估算”里输入吃了什么，估算结果可以一键填入食物表单。
+
+也可以用配置链接自动保存代理地址：
+
+```text
+https://soybean2002.github.io/calorie-pwa/?proxy=https%3A%2F%2Fcalorie-deepseek-proxy.2058588715.workers.dev%2Festimate
+```
