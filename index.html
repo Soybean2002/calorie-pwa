@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f8fb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="大卡账本" />
+    <title>大卡账本</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="icon" href="./icons/icon-192.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">私人记录</p>
+          <h1>大卡账本</h1>
+        </div>
+        <button class="icon-button" id="backupButton" type="button" title="导出备份" aria-label="导出备份">
+          <span aria-hidden="true">⇩</span>
+        </button>
+      </header>
+
+      <section class="summary-grid" aria-label="今日概览">
+        <div class="metric-panel primary-metric">
+          <div class="metric-copy">
+            <span class="metric-label">今日剩余</span>
+            <strong id="remainingKcal">0</strong>
+            <span class="metric-unit">kcal</span>
+          </div>
+          <div class="progress-ring" id="kcalRing" aria-hidden="true">
+            <span id="kcalPercent">0%</span>
+          </div>
+        </div>
+        <div class="metric-panel">
+          <span class="metric-label">目标</span>
+          <strong id="targetKcal">0</strong>
+          <span class="metric-unit">kcal</span>
+        </div>
+        <div class="metric-panel">
+          <span class="metric-label">已吃</span>
+          <strong id="eatenKcal">0</strong>
+          <span class="metric-unit">kcal</span>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="视图">
+        <button class="tab active" type="button" data-tab="log">记录</button>
+        <button class="tab" type="button" data-tab="profile">目标</button>
+        <button class="tab" type="button" data-tab="history">趋势</button>
+      </nav>
+
+      <section class="view active" id="logView" aria-labelledby="logTitle">
+        <div class="date-strip">
+          <button class="icon-button" id="prevDay" type="button" title="前一天" aria-label="前一天">‹</button>
+          <label class="date-field">
+            <span>日期</span>
+            <input id="dateInput" type="date" />
+          </label>
+          <button class="icon-button" id="nextDay" type="button" title="后一天" aria-label="后一天">›</button>
+        </div>
+
+        <section class="panel" aria-labelledby="macroTitle">
+          <div class="section-heading">
+            <h2 id="macroTitle">营养素</h2>
+            <span id="macroHint">按体重自动估算</span>
+          </div>
+          <div class="macro-grid">
+            <div>
+              <span>蛋白质</span>
+              <meter id="proteinMeter" min="0" max="100" value="0"></meter>
+              <strong id="proteinText">0 / 0 g</strong>
+            </div>
+            <div>
+              <span>碳水</span>
+              <meter id="carbMeter" min="0" max="100" value="0"></meter>
+              <strong id="carbText">0 / 0 g</strong>
+            </div>
+            <div>
+              <span>脂肪</span>
+              <meter id="fatMeter" min="0" max="100" value="0"></meter>
+              <strong id="fatText">0 / 0 g</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="addTitle">
+          <div class="section-heading">
+            <h2 id="addTitle">添加食物</h2>
+            <button class="ghost-button" id="quickClear" type="button">清空输入</button>
+          </div>
+          <form class="food-form" id="foodForm">
+            <label>
+              <span>名称</span>
+              <input id="foodName" type="text" placeholder="鸡胸肉、拿铁、米饭" autocomplete="off" required />
+            </label>
+            <label>
+              <span>餐次</span>
+              <select id="mealType">
+                <option value="早餐">早餐</option>
+                <option value="午餐" selected>午餐</option>
+                <option value="晚餐">晚餐</option>
+                <option value="加餐">加餐</option>
+              </select>
+            </label>
+            <label>
+              <span>大卡</span>
+              <input id="foodKcal" type="number" min="0" step="1" inputmode="decimal" required />
+            </label>
+            <label>
+              <span>蛋白</span>
+              <input id="foodProtein" type="number" min="0" step="0.1" inputmode="decimal" />
+            </label>
+            <label>
+              <span>碳水</span>
+              <input id="foodCarb" type="number" min="0" step="0.1" inputmode="decimal" />
+            </label>
+            <label>
+              <span>脂肪</span>
+              <input id="foodFat" type="number" min="0" step="0.1" inputmode="decimal" />
+            </label>
+            <button class="primary-button" type="submit">添加</button>
+          </form>
+        </section>
+
+        <section class="panel" aria-labelledby="entriesTitle">
+          <div class="section-heading">
+            <h2 id="entriesTitle">当天记录</h2>
+            <button class="ghost-button danger" id="clearDay" type="button">清空当天</button>
+          </div>
+          <div class="empty-state" id="emptyState">今天还没有记录。</div>
+          <ul class="entry-list" id="entryList"></ul>
+        </section>
+      </section>
+
+      <section class="view" id="profileView" aria-labelledby="profileTitle">
+        <section class="panel" aria-labelledby="profileTitle">
+          <div class="section-heading">
+            <h2 id="profileTitle">身体资料</h2>
+            <span id="bmrText">BMR 0 · TDEE 0</span>
+          </div>
+          <form class="profile-form" id="profileForm">
+            <label>
+              <span>性别</span>
+              <select id="sex">
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </label>
+            <label>
+              <span>年龄</span>
+              <input id="age" type="number" min="10" max="100" step="1" inputmode="numeric" />
+            </label>
+            <label>
+              <span>身高 cm</span>
+              <input id="height" type="number" min="100" max="230" step="1" inputmode="numeric" />
+            </label>
+            <label>
+              <span>体重 kg</span>
+              <input id="weight" type="number" min="30" max="250" step="0.1" inputmode="decimal" />
+            </label>
+            <label class="wide-field">
+              <span>活动强度</span>
+              <select id="activity">
+                <option value="1.2">久坐</option>
+                <option value="1.375">轻度活动</option>
+                <option value="1.55" selected>每周运动 3-5 次</option>
+                <option value="1.725">高强度训练</option>
+                <option value="1.9">体力工作/职业运动</option>
+              </select>
+            </label>
+            <label class="wide-field">
+              <span>目标</span>
+              <select id="goal">
+                <option value="-500">减脂</option>
+                <option value="-250">温和减脂</option>
+                <option value="0" selected>维持</option>
+                <option value="250">温和增肌</option>
+                <option value="400">增肌</option>
+              </select>
+            </label>
+            <label class="wide-field">
+              <span>手动目标 kcal</span>
+              <input id="manualTarget" type="number" min="800" max="6000" step="1" inputmode="numeric" placeholder="留空则自动计算" />
+            </label>
+            <button class="primary-button wide-field" type="submit">保存目标</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="view" id="historyView" aria-labelledby="historyTitle">
+        <section class="panel" aria-labelledby="historyTitle">
+          <div class="section-heading">
+            <h2 id="historyTitle">7 天趋势</h2>
+            <span id="averageText">平均 0 kcal</span>
+          </div>
+          <div class="chart" id="historyChart"></div>
+        </section>
+        <section class="panel" aria-labelledby="dataTitle">
+          <div class="section-heading">
+            <h2 id="dataTitle">数据</h2>
+            <button class="ghost-button danger" id="resetAll" type="button">重置全部</button>
+          </div>
+          <label class="import-box">
+            <span>导入备份 JSON</span>
+            <input id="importFile" type="file" accept="application/json" />
+          </label>
+        </section>
+      </section>
+    </main>
+
+    <template id="entryTemplate">
+      <li class="entry-item">
+        <div class="entry-main">
+          <span class="meal-pill"></span>
+          <strong></strong>
+          <small></small>
+        </div>
+        <div class="entry-actions">
+          <span class="entry-kcal"></span>
+          <button class="icon-button danger" type="button" title="删除" aria-label="删除">×</button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
