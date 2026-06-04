@@ -317,6 +317,11 @@ select:focus {
   background: var(--teal);
 }
 
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .ghost-button {
   min-height: 34px;
   padding: 0 10px;

@@ -1,4 +1,5 @@
 const STORAGE_KEY = "calorie-pwa-state-v1";
+const ESTIMATE_TIMEOUT_MS = 90000;
 
 const defaultState = {
   profile: {
@@ -44,6 +45,7 @@ const elements = {
   foodForm: $("#foodForm"),
   aiEstimateForm: $("#aiEstimateForm"),
   aiFoodDescription: $("#aiFoodDescription"),
+  estimateSubmit: $("#estimateSubmit"),
   estimateStatus: $("#estimateStatus"),
   estimateResults: $("#estimateResults"),
   quickClear: $("#quickClear"),
@@ -333,6 +335,11 @@ function setEstimateStatus(message, isError = false) {
   elements.estimateStatus.classList.toggle("danger", isError);
 }
 
+function setEstimateLoading(isLoading) {
+  elements.estimateSubmit.disabled = isLoading;
+  elements.estimateSubmit.textContent = isLoading ? "估算中..." : "估算营养";
+}
+
 function getRangeText(value, unit) {
   const min = Number(value?.min) || 0;
   const max = Number(value?.max) || 0;
@@ -420,10 +427,11 @@ async function estimateFood(description) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), ESTIMATE_TIMEOUT_MS);
 
   try {
-    setEstimateStatus("正在估算...");
+    setEstimateLoading(true);
+    setEstimateStatus("正在估算，手机网络下可能需要 10-60 秒...");
     elements.estimateResults.replaceChildren();
     const response = await fetch(proxyUrl, {
       method: "POST",
@@ -439,10 +447,11 @@ async function estimateFood(description) {
     renderEstimateResult(estimate);
     setEstimateStatus("估算完成，确认后可填入表单。");
   } catch (error) {
-    const message = error.name === "AbortError" ? "估算超时，请稍后重试。" : error.message;
+    const message = error.name === "AbortError" ? "估算超时，请稍后重试，或切换到更稳定的网络。" : error.message;
     setEstimateStatus(message, true);
   } finally {
     clearTimeout(timeoutId);
+    setEstimateLoading(false);
   }
 }
 
