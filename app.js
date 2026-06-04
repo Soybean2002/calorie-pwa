@@ -119,15 +119,21 @@ function applyProxyFromUrl() {
 }
 
 function todayKey() {
-  const now = new Date();
-  const timezoneOffset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
+  return formatDateKey(new Date());
 }
 
 function addDays(dateKey, amount) {
-  const date = new Date(`${dateKey}T00:00:00`);
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
   date.setDate(date.getDate() + amount);
-  return date.toISOString().slice(0, 10);
+  return formatDateKey(date);
+}
+
+function formatDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function round(value) {
