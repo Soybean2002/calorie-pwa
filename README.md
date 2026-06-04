@@ -13,7 +13,9 @@
 
 [https://soybean2002.github.io/calorie-pwa/](https://soybean2002.github.io/calorie-pwa/)
 
-![大卡记预览](docs/assets/preview.png)
+![大卡记顶部预览](docs/assets/preview-top.png)
+
+![大卡记记录预览](docs/assets/preview-bottom.png)
 
 ## 功能
 
