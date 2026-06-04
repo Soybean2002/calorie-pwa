@@ -48,6 +48,7 @@ const elements = {
   estimateSubmit: $("#estimateSubmit"),
   estimateStatus: $("#estimateStatus"),
   estimateResults: $("#estimateResults"),
+  clearEstimate: $("#clearEstimate"),
   quickClear: $("#quickClear"),
   entryList: $("#entryList"),
   emptyState: $("#emptyState"),
@@ -340,6 +341,14 @@ function setEstimateLoading(isLoading) {
   elements.estimateSubmit.textContent = isLoading ? "估算中..." : "估算营养";
 }
 
+function clearEstimate() {
+  elements.aiFoodDescription.value = "";
+  elements.estimateStatus.textContent = "";
+  elements.estimateStatus.classList.remove("danger");
+  elements.estimateResults.replaceChildren();
+  setEstimateLoading(false);
+}
+
 function getRangeText(value, unit) {
   const min = Number(value?.min) || 0;
   const max = Number(value?.max) || 0;
@@ -541,6 +550,8 @@ elements.aiEstimateForm.addEventListener("submit", (event) => {
   }
   estimateFood(description);
 });
+
+elements.clearEstimate.addEventListener("click", clearEstimate);
 
 elements.quickClear.addEventListener("click", clearFoodForm);
 
