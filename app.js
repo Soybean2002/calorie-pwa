@@ -13,6 +13,9 @@ const defaultState = {
     manualCarb: "",
     manualFat: ""
   },
+  settings: {
+    aiProxyUrl: ""
+  },
   entriesByDate: {}
 };
 
@@ -39,6 +42,10 @@ const elements = {
   carbText: $("#carbText"),
   fatText: $("#fatText"),
   foodForm: $("#foodForm"),
+  aiEstimateForm: $("#aiEstimateForm"),
+  aiFoodDescription: $("#aiFoodDescription"),
+  estimateStatus: $("#estimateStatus"),
+  estimateResults: $("#estimateResults"),
   quickClear: $("#quickClear"),
   entryList: $("#entryList"),
   emptyState: $("#emptyState"),
@@ -59,7 +66,9 @@ const elements = {
   historyChart: $("#historyChart"),
   averageText: $("#averageText"),
   resetAll: $("#resetAll"),
-  importFile: $("#importFile")
+  importFile: $("#importFile"),
+  aiSettingsForm: $("#aiSettingsForm"),
+  aiProxyUrl: $("#aiProxyUrl")
 };
 
 function loadState() {
@@ -70,6 +79,7 @@ function loadState() {
       ...cloneDefaultState(),
       ...saved,
       profile: { ...defaultState.profile, ...saved.profile },
+      settings: { ...defaultState.settings, ...saved.settings },
       entriesByDate: saved.entriesByDate || {}
     };
   } catch {
@@ -221,6 +231,10 @@ function renderProfileForm() {
   elements.manualFat.value = profile.manualFat;
 }
 
+function renderSettings() {
+  elements.aiProxyUrl.value = state.settings.aiProxyUrl || "";
+}
+
 function renderHistory() {
   const targets = calculateTargets();
   const dates = Array.from({ length: 7 }, (_, index) => addDays(currentDate, index - 6));
@@ -255,6 +269,7 @@ function render() {
   renderSummary();
   renderEntries();
   renderProfileForm();
+  renderSettings();
   renderHistory();
 }
 
@@ -293,6 +308,124 @@ function clearFoodForm() {
   $("#mealType").value = "午餐";
 }
 
+function setEstimateStatus(message, isError = false) {
+  elements.estimateStatus.textContent = message;
+  elements.estimateStatus.classList.toggle("danger", isError);
+}
+
+function getRangeText(value, unit) {
+  const min = Number(value?.min) || 0;
+  const max = Number(value?.max) || 0;
+  const estimate = Number(value?.estimate) || Math.round((min + max) / 2) || 0;
+  if (min > 0 && max > 0) return `${roundOne(min)}-${roundOne(max)} ${unit}`;
+  return `${roundOne(estimate)} ${unit}`;
+}
+
+function getEstimateValue(value) {
+  const estimate = Number(value?.estimate) || 0;
+  const min = Number(value?.min) || 0;
+  const max = Number(value?.max) || 0;
+  return estimate || Math.round((min + max) / 2) || 0;
+}
+
+function normalizeEstimate(payload) {
+  const estimate = payload.estimate || payload;
+  return {
+    foodName: estimate.food_name || estimate.foodName || "估算食物",
+    portion: estimate.portion || "",
+    kcal: estimate.kcal || {},
+    protein: estimate.protein || {},
+    carb: estimate.carb || estimate.carbohydrate || {},
+    fat: estimate.fat || {},
+    confidence: estimate.confidence || "medium",
+    assumptions: estimate.assumptions || "",
+    notes: Array.isArray(estimate.notes) ? estimate.notes : []
+  };
+}
+
+function renderEstimateResult(estimate) {
+  elements.estimateResults.replaceChildren();
+
+  const card = document.createElement("div");
+  card.className = "estimate-card";
+
+  const title = document.createElement("strong");
+  title.textContent = estimate.portion ? `${estimate.foodName} · ${estimate.portion}` : estimate.foodName;
+
+  const grid = document.createElement("div");
+  grid.className = "estimate-grid";
+  [
+    ["热量", getRangeText(estimate.kcal, "kcal")],
+    ["蛋白", getRangeText(estimate.protein, "g")],
+    ["碳水", getRangeText(estimate.carb, "g")],
+    ["脂肪", getRangeText(estimate.fat, "g")]
+  ].forEach(([label, value]) => {
+    const item = document.createElement("span");
+    const name = document.createTextNode(label);
+    const number = document.createElement("b");
+    number.textContent = value;
+    item.append(name, number);
+    grid.append(item);
+  });
+
+  const note = document.createElement("p");
+  note.className = "estimate-note";
+  note.textContent = estimate.assumptions || estimate.notes[0] || "AI 估算只能做记录参考，实际值会随品牌、份量和做法变化。";
+
+  const applyButton = document.createElement("button");
+  applyButton.className = "ghost-button";
+  applyButton.type = "button";
+  applyButton.textContent = "填入表单";
+  applyButton.addEventListener("click", () => fillFoodFormFromEstimate(estimate));
+
+  card.append(title, grid, note, applyButton);
+  elements.estimateResults.append(card);
+}
+
+function fillFoodFormFromEstimate(estimate) {
+  $("#foodName").value = estimate.portion ? `${estimate.foodName}（${estimate.portion}）` : estimate.foodName;
+  $("#foodKcal").value = round(getEstimateValue(estimate.kcal));
+  $("#foodProtein").value = roundOne(getEstimateValue(estimate.protein));
+  $("#foodCarb").value = roundOne(getEstimateValue(estimate.carb));
+  $("#foodFat").value = roundOne(getEstimateValue(estimate.fat));
+  $("#foodName").focus();
+}
+
+async function estimateFood(description) {
+  const proxyUrl = state.settings.aiProxyUrl?.trim();
+  if (!proxyUrl) {
+    setEstimateStatus("先到 趋势 -> 数据 填入 DeepSeek 代理地址。", true);
+    switchTab("history");
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    setEstimateStatus("正在估算...");
+    elements.estimateResults.replaceChildren();
+    const response = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description }),
+      signal: controller.signal
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "估算失败");
+
+    const estimate = normalizeEstimate(payload);
+    renderEstimateResult(estimate);
+    setEstimateStatus("估算完成，确认后可填入表单。");
+  } catch (error) {
+    const message = error.name === "AbortError" ? "估算超时，请稍后重试。" : error.message;
+    setEstimateStatus(message, true);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function switchTab(tabName) {
   elements.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabName));
   elements.views.forEach((view) => view.classList.remove("active"));
@@ -327,6 +460,7 @@ function importBackup(file) {
         ...cloneDefaultState(),
         ...importedState,
         profile: { ...defaultState.profile, ...importedState.profile },
+        settings: { ...defaultState.settings, ...importedState.settings },
         entriesByDate: importedState.entriesByDate
       };
       saveState();
@@ -369,6 +503,16 @@ elements.foodForm.addEventListener("submit", (event) => {
   addEntry(data);
 });
 
+elements.aiEstimateForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const description = elements.aiFoodDescription.value.trim();
+  if (!description) {
+    setEstimateStatus("先输入吃了什么。", true);
+    return;
+  }
+  estimateFood(description);
+});
+
 elements.quickClear.addEventListener("click", clearFoodForm);
 
 elements.clearDay.addEventListener("click", () => {
@@ -395,6 +539,13 @@ elements.profileForm.addEventListener("submit", (event) => {
   saveState();
   render();
   switchTab("log");
+});
+
+elements.aiSettingsForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  state.settings.aiProxyUrl = elements.aiProxyUrl.value.trim();
+  saveState();
+  renderSettings();
 });
 
 elements.backupButton.addEventListener("click", downloadBackup);
