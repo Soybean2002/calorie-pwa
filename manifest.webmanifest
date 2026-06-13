@@ -1,12 +1,12 @@
 {
-  "name": "大卡记",
-  "short_name": "大卡记",
-  "description": "个人使用的大卡摄入计算器",
+  "name": "小鲨记账",
+  "short_name": "小鲨记账",
+  "description": "个人使用的本地记账 PWA",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f7f8fb",
-  "theme_color": "#f7f8fb",
+  "background_color": "#f8dc53",
+  "theme_color": "#f8dc53",
   "orientation": "portrait",
   "icons": [
     {

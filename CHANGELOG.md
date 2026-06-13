@@ -2,12 +2,9 @@
 
 ## Unreleased
 
-- Added optional record sync via Cloudflare Worker `/log`
-- Added DeepSeek nutrition estimate flow
-- Added manual macro targets
-- Fixed local date navigation for non-UTC timezones
-- Refreshed iPhone home screen icon
-- Renamed app to 大卡记
+- Reworked the app into 小鲨记账, a local-first personal ledger PWA
+- Added month summary, daily grouped ledger entries, budget, assets, charts, and backup import/export
+- Updated PWA manifest and service worker cache for the ledger UI
 
 ## 0.1.0
 

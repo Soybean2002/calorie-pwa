@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f7f8fb" />
+    <meta name="theme-color" content="#f8dc53" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="大卡记" />
-    <title>大卡记</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="小鲨记账" />
+    <title>小鲨记账</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" href="./icons/icon-180.png" />
     <link rel="icon" href="./icons/icon-192.png" />
@@ -15,257 +15,261 @@
   </head>
   <body>
     <main class="app-shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">私人记录</p>
-          <h1>大卡记</h1>
-        </div>
-        <button class="icon-button" id="backupButton" type="button" title="导出备份" aria-label="导出备份">
-          <span aria-hidden="true">⇩</span>
-        </button>
-      </header>
+      <section class="month-hero" aria-label="月度概览">
+        <header class="hero-top">
+          <button class="avatar-button" type="button" data-tab-target="mine" aria-label="我的">
+            <span aria-hidden="true">◔</span>
+            <b id="noticeDot">1</b>
+          </button>
+          <h1>小鲨记账</h1>
+          <button class="icon-button bare" id="backupButton" type="button" title="导出备份" aria-label="导出备份">
+            <span aria-hidden="true">⇩</span>
+          </button>
+        </header>
 
-      <section class="summary-grid" aria-label="今日概览">
-        <div class="metric-panel primary-metric">
-          <div class="metric-copy">
-            <span class="metric-label">今日剩余</span>
-            <strong id="remainingKcal">0</strong>
-            <span class="metric-unit">kcal</span>
+        <div class="month-summary">
+          <button class="month-picker" id="monthPicker" type="button" aria-label="切换月份">
+            <span id="summaryYear">2026年</span>
+            <strong><span id="summaryMonth">06</span>月</strong>
+          </button>
+          <div>
+            <span>收入</span>
+            <strong id="monthIncome">0.00</strong>
           </div>
-          <div class="progress-ring" id="kcalRing" aria-hidden="true">
-            <span id="kcalPercent">0%</span>
+          <div>
+            <span>支出</span>
+            <strong id="monthExpense">0.00</strong>
           </div>
-        </div>
-        <div class="metric-panel">
-          <span class="metric-label">目标</span>
-          <strong id="targetKcal">0</strong>
-          <span class="metric-unit">kcal</span>
-        </div>
-        <div class="metric-panel">
-          <span class="metric-label">已吃</span>
-          <strong id="eatenKcal">0</strong>
-          <span class="metric-unit">kcal</span>
         </div>
       </section>
 
-      <nav class="tabs" aria-label="视图">
-        <button class="tab active" type="button" data-tab="log">记录</button>
-        <button class="tab" type="button" data-tab="profile">目标</button>
-        <button class="tab" type="button" data-tab="history">趋势</button>
-      </nav>
+      <section class="quick-panel" aria-label="快捷功能">
+        <button class="quick-action active" type="button" data-tab-target="detail">
+          <span class="quick-icon" aria-hidden="true">▤</span>
+          <em>账单</em>
+        </button>
+        <button class="quick-action" type="button" data-tab-target="budget">
+          <span class="quick-icon" aria-hidden="true">◰</span>
+          <em>预算</em>
+        </button>
+        <button class="quick-action" type="button" data-tab-target="assets">
+          <span class="quick-icon" aria-hidden="true">¥</span>
+          <em>资产管家</em>
+        </button>
+        <button class="quick-action" type="button" data-tab-target="discover">
+          <span class="quick-icon" aria-hidden="true">↩</span>
+          <em>退款记录</em>
+        </button>
+        <button class="quick-action" type="button" data-tab-target="mine">
+          <span class="quick-icon" aria-hidden="true">•••</span>
+          <em>更多</em>
+        </button>
+      </section>
 
-      <section class="view active" id="logView" aria-labelledby="logTitle">
-        <div class="date-strip">
-          <button class="icon-button" id="prevDay" type="button" title="前一天" aria-label="前一天">‹</button>
-          <label class="date-field">
+      <section class="view active" id="detailView" aria-labelledby="detailTitle">
+        <div class="section-bar">
+          <h2 id="detailTitle">明细</h2>
+          <label class="date-chip">
             <span>日期</span>
             <input id="dateInput" type="date" />
           </label>
-          <button class="icon-button" id="nextDay" type="button" title="后一天" aria-label="后一天">›</button>
         </div>
+        <div class="empty-state" id="emptyState">这个月还没有记录，点中间的 + 开始记一笔。</div>
+        <div class="day-groups" id="dayGroups"></div>
+      </section>
 
-        <section class="panel" aria-labelledby="macroTitle">
+      <section class="view" id="budgetView" aria-labelledby="budgetTitle">
+        <section class="plain-panel">
           <div class="section-heading">
-            <h2 id="macroTitle">营养素</h2>
-            <span id="macroHint">按体重自动估算</span>
+            <h2 id="budgetTitle">月预算</h2>
+            <span id="budgetStatus">本月还可用 0.00</span>
           </div>
-          <div class="macro-grid">
-            <div>
-              <span>蛋白质</span>
-              <meter id="proteinMeter" min="0" max="100" value="0"></meter>
-              <strong id="proteinText">0 / 0 g</strong>
-            </div>
-            <div>
-              <span>碳水</span>
-              <meter id="carbMeter" min="0" max="100" value="0"></meter>
-              <strong id="carbText">0 / 0 g</strong>
-            </div>
-            <div>
-              <span>脂肪</span>
-              <meter id="fatMeter" min="0" max="100" value="0"></meter>
-              <strong id="fatText">0 / 0 g</strong>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel" aria-labelledby="aiTitle">
-          <div class="section-heading">
-            <h2 id="aiTitle">智能估算</h2>
-            <button class="ghost-button" id="clearEstimate" type="button">清空</button>
-          </div>
-          <form class="estimate-form" id="aiEstimateForm">
+          <form class="budget-form" id="budgetForm">
             <label>
-              <span>吃了什么</span>
-              <textarea id="aiFoodDescription" rows="3" placeholder="一碗牛肉面、半杯奶茶、两个鸡蛋" autocomplete="off"></textarea>
+              <span>月支出预算</span>
+              <input id="monthlyBudget" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如 3500" />
             </label>
-            <button class="primary-button" id="estimateSubmit" type="submit">估算营养</button>
+            <button class="primary-button" type="submit">保存预算</button>
           </form>
-          <p class="status-line" id="estimateStatus"></p>
-          <div class="estimate-results" id="estimateResults"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="addTitle">
-          <div class="section-heading">
-            <h2 id="addTitle">添加食物</h2>
-            <button class="ghost-button" id="quickClear" type="button">清空输入</button>
+          <div class="budget-meter" aria-hidden="true">
+            <span id="budgetMeterFill"></span>
           </div>
-          <form class="food-form" id="foodForm">
-            <label>
-              <span>名称</span>
-              <input id="foodName" type="text" placeholder="鸡胸肉、拿铁、米饭" autocomplete="off" required />
-            </label>
-            <label>
-              <span>餐次</span>
-              <select id="mealType">
-                <option value="早餐">早餐</option>
-                <option value="午餐" selected>午餐</option>
-                <option value="晚餐">晚餐</option>
-                <option value="加餐">加餐</option>
-              </select>
-            </label>
-            <label>
-              <span>大卡</span>
-              <input id="foodKcal" type="number" min="0" step="1" inputmode="decimal" required />
-            </label>
-            <label>
-              <span>蛋白</span>
-              <input id="foodProtein" type="number" min="0" step="0.1" inputmode="decimal" />
-            </label>
-            <label>
-              <span>碳水</span>
-              <input id="foodCarb" type="number" min="0" step="0.1" inputmode="decimal" />
-            </label>
-            <label>
-              <span>脂肪</span>
-              <input id="foodFat" type="number" min="0" step="0.1" inputmode="decimal" />
-            </label>
-            <button class="primary-button" type="submit">添加</button>
-          </form>
-        </section>
-
-        <section class="panel" aria-labelledby="entriesTitle">
-          <div class="section-heading">
-            <h2 id="entriesTitle">当天记录</h2>
-            <button class="ghost-button danger" id="clearDay" type="button">清空当天</button>
-          </div>
-          <div class="empty-state" id="emptyState">今天还没有记录。</div>
-          <ul class="entry-list" id="entryList"></ul>
+          <p class="muted-copy" id="budgetHint">预算只保存在本机，不会上传。</p>
         </section>
       </section>
 
-      <section class="view" id="profileView" aria-labelledby="profileTitle">
-        <section class="panel" aria-labelledby="profileTitle">
+      <section class="view" id="assetsView" aria-labelledby="assetsTitle">
+        <section class="plain-panel">
           <div class="section-heading">
-            <h2 id="profileTitle">身体资料</h2>
-            <span id="bmrText">BMR 0 · TDEE 0</span>
+            <h2 id="assetsTitle">资产管家</h2>
+            <span id="netWorthText">净资产 0.00</span>
           </div>
-          <form class="profile-form" id="profileForm">
+          <form class="asset-form" id="assetForm">
             <label>
-              <span>性别</span>
-              <select id="sex">
-                <option value="male">男</option>
-                <option value="female">女</option>
-              </select>
+              <span>现金/余额</span>
+              <input id="cashAsset" type="number" step="0.01" inputmode="decimal" />
             </label>
             <label>
-              <span>年龄</span>
-              <input id="age" type="number" min="10" max="100" step="1" inputmode="numeric" />
+              <span>储蓄/理财</span>
+              <input id="savingAsset" type="number" step="0.01" inputmode="decimal" />
             </label>
             <label>
-              <span>身高 cm</span>
-              <input id="height" type="number" min="100" max="230" step="1" inputmode="numeric" />
+              <span>信用卡/负债</span>
+              <input id="debtAsset" type="number" step="0.01" inputmode="decimal" />
             </label>
-            <label>
-              <span>体重 kg</span>
-              <input id="weight" type="number" min="30" max="250" step="0.1" inputmode="decimal" />
-            </label>
-            <label class="wide-field">
-              <span>活动强度</span>
-              <select id="activity">
-                <option value="1.2">久坐</option>
-                <option value="1.375">轻度活动</option>
-                <option value="1.55" selected>每周运动 3-5 次</option>
-                <option value="1.725">高强度训练</option>
-                <option value="1.9">体力工作/职业运动</option>
-              </select>
-            </label>
-            <label class="wide-field">
-              <span>目标</span>
-              <select id="goal">
-                <option value="-500">减脂</option>
-                <option value="-250">温和减脂</option>
-                <option value="0" selected>维持</option>
-                <option value="250">温和增肌</option>
-                <option value="400">增肌</option>
-              </select>
-            </label>
-            <label class="wide-field">
-              <span>手动目标 kcal</span>
-              <input id="manualTarget" type="number" min="800" max="6000" step="1" inputmode="numeric" placeholder="留空则自动计算" />
-            </label>
-            <label>
-              <span>蛋白目标 g</span>
-              <input id="manualProtein" type="number" min="0" max="500" step="1" inputmode="decimal" placeholder="自动" />
-            </label>
-            <label>
-              <span>碳水目标 g</span>
-              <input id="manualCarb" type="number" min="0" max="900" step="1" inputmode="decimal" placeholder="自动" />
-            </label>
-            <label>
-              <span>脂肪目标 g</span>
-              <input id="manualFat" type="number" min="0" max="500" step="1" inputmode="decimal" placeholder="自动" />
-            </label>
-            <button class="primary-button wide-field" type="submit">保存目标</button>
+            <button class="primary-button" type="submit">保存资产</button>
           </form>
         </section>
       </section>
 
-      <section class="view" id="historyView" aria-labelledby="historyTitle">
-        <section class="panel" aria-labelledby="historyTitle">
+      <section class="view" id="chartView" aria-labelledby="chartTitle">
+        <section class="plain-panel">
           <div class="section-heading">
-            <h2 id="historyTitle">7 天趋势</h2>
-            <span id="averageText">平均 0 kcal</span>
+            <h2 id="chartTitle">图表</h2>
+            <span id="averageDailyText">日均支出 0.00</span>
           </div>
-          <div class="chart" id="historyChart"></div>
+          <div class="chart-tabs" role="tablist" aria-label="图表类型">
+            <button class="chart-tab active" type="button" data-chart="expense">支出</button>
+            <button class="chart-tab" type="button" data-chart="income">收入</button>
+          </div>
+          <div class="bar-chart" id="barChart"></div>
         </section>
-        <section class="panel" aria-labelledby="dataTitle">
+        <section class="plain-panel">
           <div class="section-heading">
-            <h2 id="dataTitle">数据</h2>
+            <h2>分类排行</h2>
+            <span id="categoryTotalText">合计 0.00</span>
+          </div>
+          <div class="category-rank" id="categoryRank"></div>
+        </section>
+      </section>
+
+      <section class="view add-view" id="addView" aria-labelledby="addTitle">
+        <section class="entry-card">
+          <div class="add-header">
+            <h2 id="addTitle">记一笔</h2>
+            <div class="type-switch" aria-label="收支类型">
+              <button class="active" id="expenseType" type="button" data-type="expense">支出</button>
+              <button id="incomeType" type="button" data-type="income">收入</button>
+            </div>
+          </div>
+
+          <form id="entryForm">
+            <input id="entryType" type="hidden" value="expense" />
+            <label class="amount-field">
+              <span>金额</span>
+              <input id="amountInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required />
+            </label>
+            <div>
+              <span class="field-label">分类</span>
+              <div class="category-grid" id="categoryGrid"></div>
+            </div>
+            <div class="form-row">
+              <label>
+                <span>日期</span>
+                <input id="entryDateInput" type="date" />
+              </label>
+              <label>
+                <span>账户</span>
+                <select id="accountInput">
+                  <option>微信</option>
+                  <option>支付宝</option>
+                  <option>银行卡</option>
+                  <option>现金</option>
+                  <option>信用卡</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              <span>备注</span>
+              <input id="noteInput" type="text" placeholder="可选，例如和朋友吃饭" autocomplete="off" />
+            </label>
+            <button class="primary-button submit-entry" type="submit">保存</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="view" id="discoverView" aria-labelledby="discoverTitle">
+        <section class="plain-panel">
+          <div class="section-heading">
+            <h2 id="discoverTitle">发现</h2>
+            <span>无广告版</span>
+          </div>
+          <div class="discover-grid">
+            <button type="button" data-fill-category="餐饮">常记餐饮</button>
+            <button type="button" data-fill-category="购物">常记购物</button>
+            <button type="button" data-fill-category="交通">常记交通</button>
+            <button type="button" data-fill-category="工资">记录收入</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" id="mineView" aria-labelledby="mineTitle">
+        <section class="plain-panel">
+          <div class="section-heading">
+            <h2 id="mineTitle">我的</h2>
             <button class="ghost-button danger" id="resetAll" type="button">重置全部</button>
           </div>
-          <form class="settings-form" id="aiSettingsForm">
-            <label>
-              <span>DeepSeek 代理地址</span>
-              <input id="aiProxyUrl" type="url" placeholder="https://你的-worker.workers.dev/estimate" autocomplete="off" />
-            </label>
-            <button class="ghost-button" type="submit">保存代理</button>
-          </form>
-          <form class="settings-form" id="syncSettingsForm">
-            <label>
-              <span>记录同步地址</span>
-              <input id="syncUrl" type="url" placeholder="https://你的-worker.workers.dev/log?token=..." autocomplete="off" />
-            </label>
-            <button class="ghost-button" type="submit">保存同步</button>
-          </form>
-          <p class="status-line" id="syncStatus"></p>
+          <dl class="mine-stats">
+            <div>
+              <dt>本月结余</dt>
+              <dd id="balanceText">0.00</dd>
+            </div>
+            <div>
+              <dt>记录笔数</dt>
+              <dd id="entryCountText">0</dd>
+            </div>
+          </dl>
           <label class="import-box">
             <span>导入备份 JSON</span>
             <input id="importFile" type="file" accept="application/json" />
           </label>
         </section>
       </section>
+
+      <nav class="bottom-nav" aria-label="主导航">
+        <button class="nav-item active" type="button" data-tab-target="detail">
+          <span aria-hidden="true">▤</span>
+          <b>明细</b>
+        </button>
+        <button class="nav-item" type="button" data-tab-target="chart">
+          <span aria-hidden="true">⌁</span>
+          <b>图表</b>
+        </button>
+        <button class="add-tab active-add" type="button" data-tab-target="add" aria-label="记账">
+          <span aria-hidden="true">+</span>
+          <b>记账</b>
+        </button>
+        <button class="nav-item" type="button" data-tab-target="discover">
+          <span aria-hidden="true">◒</span>
+          <b>发现</b>
+        </button>
+        <button class="nav-item" type="button" data-tab-target="mine">
+          <span aria-hidden="true">◎</span>
+          <b>我的</b>
+        </button>
+      </nav>
     </main>
+
+    <template id="dayGroupTemplate">
+      <section class="day-group">
+        <header>
+          <span class="day-label"></span>
+          <span class="day-total"></span>
+        </header>
+        <ul></ul>
+      </section>
+    </template>
 
     <template id="entryTemplate">
       <li class="entry-item">
+        <div class="category-badge" aria-hidden="true"></div>
         <div class="entry-main">
-          <span class="meal-pill"></span>
           <strong></strong>
           <small></small>
         </div>
-        <div class="entry-actions">
-          <span class="entry-kcal"></span>
-          <button class="icon-button danger" type="button" title="删除" aria-label="删除">×</button>
+        <div class="entry-side">
+          <span class="entry-amount"></span>
+          <button class="delete-button" type="button" title="删除" aria-label="删除">×</button>
         </div>
       </li>
     </template>
